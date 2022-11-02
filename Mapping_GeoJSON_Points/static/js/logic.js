@@ -23,23 +23,7 @@ let sanFranAirport =
 
 // Create the map object with a center and zoom level.
 // Change the geographical center of the map to the geographical center of the Earth and set the zoom level as 2.
-let map = L.map('mapid').setView([30, 30], 2);
-
-// GeoJSON objects are added to the map through a GeoJSON layer, L.geoJSON().
-// L.geoJSON(geojsonfeature).addTo(map);
-L.geoJSON(sanFranAirport, {
-  // We turn each feature into a marker on the map.
-  // pointToLayer: function(feature, latlng) {
-  //   console.log(feature);
-  //   return L.marker(latlng).bindPopup("<h2>" + feature.properties.name + "</h2>"+ "<hr>"
-  //     + feature.properties.city + "," + feature.properties.country);
-  // }
-  onEachFeature: function (feature, layer) {
-    console.log(feature);
-    console.log(layer);
-    return layer.bindPopup("<h3>Airport code: " + feature.properties.faa + "<hr>" + "Airport name: " + feature.properties.name + "</h3>");
-  }
-}).addTo(map);
+// let map = L.map('mapid').setView([30, 30], 2);
 
 // We create the tile layer that will be the background of our map.
 let streets = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/outdoors-v11/tiles/{z}/{x}/{y}?access_token={accessToken}', {
@@ -48,8 +32,31 @@ let streets = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/outdoors-v11/
     accessToken: API_KEY
 });
 
+// We'll add another tileLayer() to create a dark map.
+// We create the dark view tile layer that will be an option for our map.
+let dark = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/dark-v10/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery (c) <a href="https://www.mapbox.com/">Mapbox</a>',
+    maxZoom: 18,
+    accessToken: API_KEY
+});
+
 // Then we add our 'graymap' tile layer to the map.
-streets.addTo(map);
+//streets.addTo(map);
+// Create a base layer that holds both maps.
+let baseLayer = {
+  Street: streets,
+  Dark: dark
+};
+
+// Create the map object with center, zoom level and default layer.
+let map = L.map('mapid', {
+  center: [30, 30],
+  zoom: 2,
+  layers: [streets]
+});
+
+// Pass our map layers into our layers control and add the layers control to the map.
+L.control.layers(baseLayer).addTo(map);
 
 // To change the map's style, change the map id using the list of Mapbox ids below:
 
@@ -59,3 +66,17 @@ streets.addTo(map);
 // mapbox/dark-v10
 // mapbox/satellite-v9
 // mapbox/satellite-streets-v11
+
+// Accessing the airport GeoJSON URL
+let airportData = "https://raw.githubusercontent.com/vneeraja/Mapping_Earthquakes/main/majorAirports.json";
+
+// Grabbing our GeoJSON data.
+d3.json(airportData).then(function(data) {
+  console.log(data);
+  // Creating a GeoJSON layer with the retrieved data.
+  return L.geoJSON(data, {
+    onEachFeature : function(feature, layer) {
+      return layer.bindPopup("<h3>Airport code: " + feature.properties.faa + "<hr>" + "Airport name: " + feature.properties.name + "</h3>");
+    }
+  }).addTo(map);
+});
