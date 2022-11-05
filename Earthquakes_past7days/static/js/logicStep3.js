@@ -1,30 +1,6 @@
 // Add console.log to check to see if our code is working.
 console.log("working");
 
-// GeoJSON data is a FeatureCollection object that has properties and geometry for the San Francisco Airport.
-let sanFranAirport =
-{"type":"FeatureCollection","features":[{
-    "type":"Feature",
-    "properties":{
-        "id":"3469",
-        "name":"San Francisco International Airport",
-        "city":"San Francisco",
-        "country":"United States",
-        "faa":"SFO",
-        "icao":"KSFO",
-        "alt":"13",
-        "tz-offset":"-8",
-        "dst":"A",
-        "tz":"America/Los_Angeles"},
-        "geometry":{
-            "type":"Point",
-            "coordinates":[-122.375,37.61899948120117]}}
-]};
-
-// Create the map object with a center and zoom level.
-// Change the geographical center of the map to the geographical center of the Earth and set the zoom level as 2.
-// let map = L.map('mapid').setView([30, 30], 2);
-
 // We create the tile layer that will be the background of our map.
 let streets = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
@@ -45,14 +21,14 @@ attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap
 // Create a base layer that holds both maps.
 let baseLayer = {
   "Streets": streets,
-  "Satellite Streets": satelliteStreets
+  "Satellite": satelliteStreets
 };
 
 // Create the map object with center, zoom level and default layer.
 let map = L.map('mapid', {
-  center: [43.7, -79.3],
-  zoom: 11,
-  layers: [satelliteStreets]
+  center: [39.5, -98.5],
+  zoom: 3,
+  layers: [streets]
 });
 
 // Pass our map layers into our layers control and add the layers control to the map.
@@ -68,23 +44,71 @@ L.control.layers(baseLayer).addTo(map);
 // mapbox/satellite-streets-v11
 
 // Accessing the Toronto neighborhoods GeoJSON URL.
-let torontoHoods = "https://raw.githubusercontent.com/vneeraja/Mapping_Earthquakes/main/torontoNeighborhoods.json";
+let earthquakeInfo = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
 
 // Grabbing our GeoJSON data.
-d3.json(torontoHoods).then(function(data) {
+d3.json(earthquakeInfo).then(function(data) {
   console.log(data);
   // Creating a GeoJSON layer with the retrieved data.
-  return L.geoJSON(data,{
-      style: myStyle,
-      onEachFeature: function(feature, layer){
-        layer.bindPopup("<h2>"+feature.properties.AREA_NAME+"</h2>");
-      }
+  L.geoJSON(data, {
 
+    // We turn each feature into a circleMarker on the map.
+    
+    pointToLayer: function(feature, latlng) {
+        console.log(data);
+        return L.circleMarker(latlng);
+    },
+
+    // Style for map
+    style: styleInfo,
+
+     // We create a popup for each circleMarker to display the magnitude and
+    //  location of the earthquake after the marker has been created and styled.
+    onEachFeature: function(feature, layer){
+      layer.bindPopup("Magnitude: " + feature.properties.mag + "<br>Location: " + feature.properties.place);
+    }
   }).addTo(map);
 });
 
-var myStyle = {
-  "color": "blue",
-  "weight":1,
-  "fillColor": "yellow"
+// This function determines the color of the circle based on the magnitude of the earthquake.
+function getColor(magnitude){
+  if (magnitude > 5) {
+    return "#ea2c2c";
+  }
+  if (magnitude > 4) {
+    return "#ea822c";
+  }
+  if (magnitude > 3) {
+    return "#ee9c00";
+  }
+  if (magnitude > 2) {
+    return "#eecc00";
+  }
+  if (magnitude > 1) {
+    return "#d4ee00";
+  }
+  return "#98ee00";
+}
+
+// This function returns the style data for each of the earthquakes we plot on
+// the map. We pass the magnitude of the earthquake into a function
+// to calculate the radius.
+function styleInfo(feature){
+  return {
+    opacity: 1,
+    fillOpacity: 1,
+    fillColor: getColor(feature.properties.mag),
+    color: "#000000",
+    radius: getRadius(feature.properties.mag),
+    stroke: true,
+    weight: 0.5
+  };
+};
+
+// Plot the circle marker based on the magnitude
+function getRadius(magnitude){
+  if (magnitude === 0) {
+    return 1;
+  }
+  return magnitude * 4;
 }
